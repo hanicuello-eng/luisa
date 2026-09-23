@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plataforma de Evaluaciones</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Librería SheetJS para exportar reportes a Excel (.xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- MÓDULO DE LOGIN (INICIO DE SESIÓN)         -->
+  <!-- ========================================== -->
+  <div id="loginModule" class="container">
+    <div class="card login-card">
+      <h2>🔐 Acceso Docente</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+        Por favor ingresa tus credenciales para administrar la plataforma.
+      </p>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="loginUser">Usuario / Docente:</label>
+          <input type="text" id="loginUser" placeholder="Ej: Luisa Arango" required>
+        </div>
+        <div class="form-group">
+          <label for="loginPass">Contraseña:</label>
+          <input type="password" id="loginPass" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Ingresar al Panel</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MÓDULO DEL DOCENTE                         -->
+  <!-- ========================================== -->
+  <div id="teacherModule" class="hidden">
+    <header id="teacherHeader">
+      <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto; flex-wrap: wrap;">
+        <h1>Panel Docente - Gestión de Evaluaciones</h1>
+        <button class="btn btn-secondary-sm" onclick="logoutTeacher()">🚪 Cerrar Sesión</button>
+      </div>
+      
+      <!-- BARRA DE NAVEGACIÓN -->
+      <nav class="teacher-nav">
+        <button class="nav-btn active" onclick="switchTab('examsTab')">📝 Exámenes</button>
+        <button class="nav-btn" onclick="switchTab('configTab')">⚙️ Configuración</button>
+        <button class="nav-btn" onclick="switchTab('historyTab')">📊 Historial</button>
+      </nav>
+    </header>
+
+    <main class="container">
+      
+      <!-- PESTAÑA 1: EXÁMENES -->
+      <div id="examsTab" class="tab-content active-tab">
+        <!-- Banco de Exámenes -->
+        <section id="examsBankSection" class="card">
+          <div class="section-header">
+            <h2>Banco de Exámenes</h2>
+            <div class="header-buttons">
+              <button class="btn" onclick="openExamCreator()">+ Crear Examen</button>
+            </div>
+          </div>
+          <div id="examsBankContainer">
+            <!-- Las tarjetas de exámenes se renderizan dinámicamente -->
+          </div>
+        </section>
+
+        <!-- Creador y Editor de Exámenes -->
+        <section id="examCreatorSection" class="card hidden">
+          <h2 id="creatorTitle">Nuevo Examen</h2>
+          <div class="form-group">
+            <label for="examTitleInput">Título del Examen:</label>
+            <input type="text" id="examTitleInput" placeholder="Ej: Evaluación de Matemáticas - Periodo 1">
+          </div>
+          <div class="form-group">
+            <label for="examGroupSelect">Asignar a Grupo:</label>
+            <select id="examGroupSelect">
+              <option value="">-- Seleccionar Grupo --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="examTimeInput">Tiempo Límite (minutos):</label>
+            <input type="number" id="examTimeInput" value="30" min="1">
+          </div>
+
+          <hr>
+
+          <h3>Agregar Pregunta</h3>
+          <div class="form-group">
+            <label for="newQuestionText">Enunciado de la Pregunta:</label>
+            <input type="text" id="newQuestionText" placeholder="Escribe el enunciado aquí...">
+          </div>
+          <div class="form-group">
+            <label for="newQuestionType">Tipo de Pregunta:</label>
+            <select id="newQuestionType" onchange="toggleOptionFields()">
+              <option value="multiple">Opción Múltiple</option>
+              <option value="open">Pregunta Abierta</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="newQuestionPoints">Puntos / Valor:</label>
+            <input type="number" id="newQuestionPoints" value="1" min="0.5" step="0.5">
+          </div>
+
+          <!-- Opciones dinámicas para pregunta múltiple -->
+          <div id="multipleOptionsBlock">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <small>Marca cuál opción es la correcta:</small>
+              <button type="button" class="btn btn-secondary-sm" onclick="addOptionField()">+ Añadir Opción</button>
+            </div>
+            
+            <div id="dynamicOptionsContainer">
+              <!-- Se generarán dinámicamente las opciones aquí -->
+            </div>
+          </div>
+
+          <button class="btn btn-secondary" onclick="addQuestionToCurrentExam()" style="margin-top:12px;">+ Agregar Pregunta al Examen</button>
+
+          <hr>
+
+          <h3>Preguntas Agregadas:</h3>
+          <div id="currentExamQuestionsList"></div>
+
+          <div class="actions-right" style="margin-top: 15px;">
+            <button class="btn" onclick="saveExamToBank()">Guardar Examen</button>
+            <button class="btn btn-danger-sm" onclick="closeExamCreator()">Cancelar</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- PESTAÑA 2: CONFIGURACIÓN -->
+      <div id="configTab" class="tab-content hidden-tab">
+        <section id="profileSection" class="card">
+          <h2>Perfil y Credenciales Docente</h2>
+          <div class="profile-content">
+            <div class="avatar-container">
+              <img id="avatarImage" src="https://via.placeholder.com/100" alt="Avatar Docente" class="avatar">
+              <input type="file" id="avatarInput" accept="image/*">
+            </div>
+            <div class="profile-inputs">
+              <div class="form-group">
+                <label>Nombre de Usuario / Docente:</label>
+                <input type="text" id="profNameInput" placeholder="Nombre de usuario" onchange="updateProfile()">
+              </div>
+              <div class="form-group">
+                <label>Contraseña de Acceso:</label>
+                <input type="password" id="profPassInput" placeholder="Nueva contraseña" onchange="updateProfile()">
+              </div>
+              <div class="form-group">
+                <label>Materia / Asignatura:</label>
+                <input type="text" id="profSubjectInput" placeholder="Materia / Asignatura" onchange="updateProfile()">
+              </div>
+              <div class="form-group">
+                <label>Descripción / Biografía corta:</label>
+                <textarea id="profBioInput" placeholder="Descripción corta" onchange="updateProfile()"></textarea>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="groupsSection" class="card">
+          <h2>Gestión de Grupos</h2>
+          <div class="form-group" style="display: flex; gap: 10px;">
+            <input type="text" id="newGroupNameInput" placeholder="Ej: 10-A, 10-B, Software 1...">
+            <button class="btn" onclick="addGroup()">+ Agregar Grupo</button>
+          </div>
+          <div id="groupsListContainer" class="groups-chip-container"></div>
+        </section>
+      </div>
+
+      <!-- PESTAÑA 3: HISTORIAL -->
+      <div id="historyTab" class="tab-content hidden-tab">
+        <section id="historySection" class="card">
+          <div class="section-header">
+            <h2>Historial por Examen</h2>
+            <button class="btn btn-secondary" onclick="exportToExcel()">📊 Exportar a Excel</button>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label for="historyExamFilter">Seleccionar Examen para Ver Historial:</label>
+            <select id="historyExamFilter" onchange="renderHistoryTable()">
+              <!-- Se poblará dinámicamente con la lista de exámenes -->
+            </select>
+          </div>
+
+          <div id="historyListContainer"></div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MÓDULO DEL ESTUDIANTE                      -->
+  <!-- ========================================== -->
+  <div id="studentModule" class="hidden">
+    <header style="text-align: center; padding: 20px 0;">
+      <h2>Plataforma de Evaluaciones</h2>
+      <p style="color: var(--text-muted, #666);">Por favor responde con atención las preguntas solicitadas.</p>
+    </header>
+
+    <main class="container">
+      <section id="previewSection" class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3 id="previewTitle" style="margin: 0;"></h3>
+          <div id="previewTimerDisplay">⏱️ 00:00</div>
+        </div>
+
+        <form id="previewExamForm">
+          <div id="previewQuestionsContainer"></div>
+          <button type="submit" class="btn" style="width: 100%; margin-top: 15px;">Finalizar y Entregar Evaluación</button>
+        </form>
+      </section>
+
+      <section id="resultsContainer" class="card hidden">
+        <h2>🎉 ¡Evaluación Entregada!</h2>
+        <div id="scoreDetails"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>
